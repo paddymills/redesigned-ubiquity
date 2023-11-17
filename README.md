@@ -1,8 +1,13 @@
-# building
+# High Steel system integration
+
+## Binary executables
+- SAP Consumption file generator for Sigmanest data
+
+## building
 make sure you have a [rust toolchain](https://rustup.rs) installed
 
-## [build](https://doc.rust-lang.org/cargo/commands/cargo-build.html)
+### [build](https://doc.rust-lang.org/cargo/commands/cargo-build.html)
 `cargo build --release`
 
-## [docs](https://doc.rust-lang.org/cargo/commands/cargo-doc.html)
+### [docs](https://doc.rust-lang.org/cargo/commands/cargo-doc.html)
 `cargo doc --no-deps`
