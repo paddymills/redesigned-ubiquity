@@ -1,0 +1,18 @@
+[package]
+name = "sysinteg"
+description = "High Steel system integration"
+version = "0.1.0"
+edition = "2021"
+authors = ["Patrick Miller"]
+repository = "https://github.com/paddymills/redesigned-ubiquity"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+chrono = "0.4.31"
+serde = { version = "1.0.192", features = ["derive"] }
+tiberius = { version = "0.12.2", features = ["sql-browser-tokio", "integrated-auth-gssapi", "chrono"] }
+tokio = { version = "1.34.0", features = ["rt-multi-thread", "sync", "macros"] }
+tokio-util = { version = "0.7.10", features = ["compat"] }
+toml = { version = "0.8.8", features = ["parse"] }
