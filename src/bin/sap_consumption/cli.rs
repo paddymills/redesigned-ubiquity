@@ -1,9 +1,8 @@
 
-
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::Verbosity;
 use std::path::PathBuf;
-use sysinteg::config::Config;
+use sysinteg::config::TomlConfig;
 
 use crate::config::{CONFIG_FILE, SapConsumptionConfig};
 
@@ -14,7 +13,7 @@ pub struct Cli {
     command: Option<Command>,
     
     #[command(flatten)]
-    pub verbose: Verbosity,
+    verbose: Verbosity,
 }
 
 #[derive(Debug, Subcommand)]
@@ -29,10 +28,16 @@ enum Command {
 
 impl Cli {
     pub fn handle_install(&self) -> anyhow::Result<bool> {
+        let log_app_name = || -> anyhow::Result<String> {
+            let cfg = SapConsumptionConfig::load(&PathBuf::from(CONFIG_FILE))?;
+            
+            Ok(cfg.logging_name)
+        };
+
         if let Some(command) = &self.command {
             match command {
-                Command::Install => eventlog::register("Sap Consumption")?,
-                Command::Uninstall => eventlog::deregister("Sap Consumption")?,
+                Command::Install   => eventlog::register(&log_app_name()?)?,
+                Command::Uninstall => eventlog::deregister(&log_app_name()?)?,
                 Command::GenerateConfig => SapConsumptionConfig::generate(&PathBuf::from(CONFIG_FILE))?,
             };
 
@@ -43,5 +48,9 @@ impl Cli {
             Ok(true)
         }
 
+    }
+
+    pub fn log_level(&self) -> log::Level {
+        self.verbose.log_level().unwrap_or(log::Level::Warn)
     }
 }
