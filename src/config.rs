@@ -8,7 +8,7 @@ use std::{
 };
 
 /// trait to allow for easy serde of a config
-pub trait Config {
+pub trait TomlConfig {
     /// load the configuration from `config.toml` in the root directory
     fn load(path: &PathBuf) -> anyhow::Result<Self>
         where Self: Sized + serde::de::DeserializeOwned

@@ -29,6 +29,8 @@ impl DbConnParams {
     }
 }
 
+impl crate::config::TomlConfig for DbConnParams {}
+
 impl Default for DbConnParams {
     fn default() -> Self {
         Self {
