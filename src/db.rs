@@ -1,6 +1,7 @@
 
 //! database connections
 
+use serde::{Deserialize, Serialize};
 use tiberius::{AuthMethod, Client, Config, error::Error, ColumnData, Row};
 use tokio::net::TcpStream;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
@@ -9,6 +10,33 @@ use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 pub type DbClient = Client<Compat<TcpStream>>;
 /// Result type for SQL Server database
 pub type DbResult<T> = Result<T, Error>;
+
+
+/// Parameters for a SQL Server connection
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DbConnParams {
+    /// Server name
+    pub server: String,
+    
+    /// Database name
+    pub database: String,
+}
+
+impl DbConnParams {
+    /// connect to the database using the configuration
+    pub async fn connect(&self) -> DbResult<DbClient> {
+        connect(&self.server, &self.database).await
+    }
+}
+
+impl Default for DbConnParams {
+    fn default() -> Self {
+        Self {
+            server: String::from("<server>"),
+            database: String::from("<database>")
+        }
+    }
+}
 
 /// configure database connection
 pub async fn connect(host: &str, database: &str) -> Result<DbClient, Error> {

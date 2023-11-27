@@ -1,25 +1,20 @@
 
 //! db configurations from local `.toml` files
 
-use crate::db;
-use std::fs;
-use serde::{Deserialize, Serialize};
+use std::{
+    fs::{self, File},
+    path::PathBuf,
+    io::Write
+};
 
-/// Parameters for a SQL Server connection
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct DbConnParams {
-    /// Server name
-    pub server: String,
-    
-    /// Database name
-    pub database: String,
-}
-
-impl DbConnParams {
+/// trait to allow for easy serde of a config
+pub trait Config {
     /// load the configuration from `config.toml` in the root directory
-    pub fn load() -> anyhow::Result<Self> {
+    fn load(path: &PathBuf) -> anyhow::Result<Self>
+        where Self: Sized + serde::de::DeserializeOwned
+    {
         // read file
-        let toml_contents = fs::read_to_string("config.toml")?;
+        let toml_contents = fs::read_to_string(path)?;
 
         // parse toml file text
         let parsed = toml::from_str::<Self>(&toml_contents)?;
@@ -27,8 +22,15 @@ impl DbConnParams {
         Ok(parsed)
     }
 
-    /// connect to the database using the configuration
-    pub async fn connect(&self) -> db::DbResult<db::DbClient> {
-        db::connect(&self.server, &self.database).await
+    /// generate an example config
+    fn generate(path: &PathBuf) -> anyhow::Result<()>
+        where Self: Sized + Default + serde::Serialize
+    {
+        let toml = toml::to_string(&Self::default())?;
+        
+        let mut file = File::create(path)?;
+        file.write_all(toml.as_bytes())?;
+
+        Ok(())
     }
 }
