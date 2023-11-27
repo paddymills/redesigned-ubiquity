@@ -1,16 +1,43 @@
 
+// hide terminal window, if not a debug build
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+mod cli;
+mod config;
+
 use chrono::{Duration, Local, NaiveDateTime, NaiveTime, Timelike};
+use config::{CONFIG_FILE, SapConsumptionConfig};
+
 use std::fs::File;
+use std::path::PathBuf;
 use std::io::Write;
 
-use sysinteg::config::DbConnParams;
-use sysinteg::db;
+use clap::Parser;
+
+use sysinteg::{config::Config, db};
 
 // TODO: store last queried time in database
 const INTERVAL: i64 = 1;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args = cli::Cli::parse();
+
+    if let Ok(false) = args.handle_install() {
+        return Ok(());
+    }
+    
+    // init logger
+    eventlog::init("Sap Consumption", args.verbose.log_level().unwrap_or(log::Level::Warn))?;
+    
+    let config = SapConsumptionConfig::load(&PathBuf::from(CONFIG_FILE))?;
+    pull_interval(config).await?;
+
+
+    Ok(())
+}
+
+async fn pull_interval(config: SapConsumptionConfig) -> anyhow::Result<()> {
 
     let now = Local::now();
     let end = NaiveDateTime::new(now.date_naive(), NaiveTime::from_hms_opt(now.hour(), 0, 0).unwrap());
@@ -18,9 +45,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("pulling data for duration [{}, {})", start.format("%d/%m/%Y %H:%M"), end.format("%d/%m/%Y %H:%M"));
 
-    let mut client = DbConnParams::load()?
-        .connect()
-            .await?;
+    let mut client = config.database.connect().await?;
     
     let prod = client
         .query("EXEC SapProduction @Start=@P1, @End=@P2", &[&start, &end]).await?
