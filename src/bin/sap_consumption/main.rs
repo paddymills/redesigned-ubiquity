@@ -14,7 +14,7 @@ use std::io::Write;
 
 use clap::Parser;
 
-use sysinteg::{config::Config, db};
+use sysinteg::{config::TomlConfig, db};
 
 // TODO: store last queried time in database
 const INTERVAL: i64 = 1;
@@ -22,55 +22,59 @@ const INTERVAL: i64 = 1;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = cli::Cli::parse();
+    
+    if args.handle_install()? {
+        // load config
+        let config = SapConsumptionConfig::load(&PathBuf::from(CONFIG_FILE))?;
 
-    if let Ok(false) = args.handle_install() {
-        return Ok(());
+        // init logger
+        eventlog::init(&config.logging_name, args.log_level())?;
+        
+        pull_interval(config).await?;
     }
-    
-    // init logger
-    eventlog::init("Sap Consumption", args.verbose.log_level().unwrap_or(log::Level::Warn))?;
-    
-    let config = SapConsumptionConfig::load(&PathBuf::from(CONFIG_FILE))?;
-    pull_interval(config).await?;
-
 
     Ok(())
 }
 
 async fn pull_interval(config: SapConsumptionConfig) -> anyhow::Result<()> {
-
     let now = Local::now();
     let end = NaiveDateTime::new(now.date_naive(), NaiveTime::from_hms_opt(now.hour(), 0, 0).unwrap());
     let start = end - Duration::hours(INTERVAL);
 
-    println!("pulling data for duration [{}, {})", start.format("%d/%m/%Y %H:%M"), end.format("%d/%m/%Y %H:%M"));
+    log::info!("pulling data for duration [{}, {})", start.format("%d/%m/%Y %H:%M"), end.format("%d/%m/%Y %H:%M"));
 
     let mut client = config.database.connect().await?;
     
+    log::trace!("pulling Production dataset");
     let prod = client
-        .query("EXEC SapProduction @Start=@P1, @End=@P2", &[&start, &end]).await?
+        .query("EXEC SapProductionData @Start=@P1, @End=@P2", &[&start, &end]).await?
         .into_first_result().await?;
 
+        
+    log::trace!("pulling Issue dataset");
     let issue = client
         .query("EXEC SapIssueData @Start=@P1, @End=@P2", &[&start, &end]).await?
         .into_first_result().await?;
 
-    write_data(prod, "Production", end);
-    write_data(issue, "Issue", end);
+    write_data(prod,  "Production", end, &config.output_dir);
+    write_data(issue, "Issue",      end, &config.output_dir);
 
     Ok(())
 }
 
-fn write_data(dataset: Vec<tiberius::Row>, name: &str, timestamp: NaiveDateTime) {
-    // TODO: store on server
-    let filename = format!("{}_{}.ready", name, timestamp.format("%Y%m%d%H%M%S"));
-    let mut file = File::create(&filename)
-        .expect(&format!("Failed to create file {}", &filename));
-
+fn write_data(dataset: Vec<tiberius::Row>, name: &str, timestamp: NaiveDateTime, outdir: &PathBuf) {
     if dataset.len() == 0 {
-        println!("Dataset {} is empty", name);
+        log::debug!("Dataset {} is empty", name);
     } else {
-        println!("Writing dataset {}", name);
+        // TODO: store on server
+        let filename = format!("{}_{}.ready", name, timestamp.format("%Y%m%d%H%M%S"));
+        let filename = outdir.join(filename);
+        
+        let mut file = File::create(&filename)
+            .map_err(|_| log::error!("Failed to create file {}", &filename.to_str().unwrap()))
+            .unwrap();
+    
+        log::info!("Writing dataset {}", name);
         dataset
             .into_iter()
             // convert row to tab delimited string
