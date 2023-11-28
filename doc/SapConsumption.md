@@ -1,4 +1,3 @@
-
 # SAP Consumption
 
 This executable pulls data regarding programs that were burned in the previous timeframe and pushes them to SAP
