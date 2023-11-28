@@ -24,8 +24,3 @@ toml = { version = "0.8.8", features = ["parse"] }
 [[bin]]
 name = "sap-consumption"
 path = "src/bin/sap_consumption/main.rs"
-
-[build-dependencies]
-# md2pdf = "0.0.3"
-p4d-mdproof = "0.1.2"
-anyhow = "1.0.75"
