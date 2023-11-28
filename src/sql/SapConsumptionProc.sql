@@ -150,7 +150,6 @@ AS
 		MaterialUoM,
 		MaterialLocation,
 		Plant,
-		ProgramName,
 		Id
 	FROM SapConsumptionData
 	WHERE ArcDateTime >= @Start AND ArcDateTime < @End
