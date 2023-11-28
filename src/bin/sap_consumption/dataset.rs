@@ -3,7 +3,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::io::Write;
 
-use tiberius::{Query, Result};
+use tiberius::Result;
 use sysinteg::db::{self, DbClient};
 
 
@@ -20,13 +20,11 @@ impl Dataset {
         }
     }
 
-    fn query(&self) -> Query {
-        let sql = match self {
+    fn query(&self) -> &str {
+        match self {
             Self::Production => "EXEC SapProductionData_SinceLastRun",
             Self::Issue      => "EXEC SapIssueData_SinceLastRun"
-        };
-
-        Query::new(sql)
+        }
     }
 
     fn filename(&self, end: chrono::NaiveDateTime, output_dir: &PathBuf) -> PathBuf {
@@ -40,7 +38,7 @@ impl Dataset {
         let name = self.name();
 
         log::trace!("pulling {} dataset", name);
-        let data = self.query().query(client).await?
+        let data = client.simple_query(self.query()).await?
             .into_first_result().await?;
 
         if data.len() == 0 {
