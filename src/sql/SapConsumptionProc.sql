@@ -157,18 +157,20 @@ AS
 	ORDER BY ProgramName, PartName;
 GO
 
-CREATE PROCEDURE SapProductionData_SinceLastRun AS
-	DECLARE @LastRunEnd  DATETIME = (SELECT last_runtime FROM HighSteel.RuntimeInfo WHERE name='SapProductionData');
-	DECLARE @PrevHourEnd DATETIME = DATEADD(HOUR, DATEDIFF(HOUR, 0, GETDATE()), 0);
+CREATE PROCEDURE SapProductionData_SinceLastRun
+	@End DATETIME
+AS
+	DECLARE @LastRun DATETIME = (SELECT last_runtime FROM HighSteel.RuntimeInfo WHERE name='SapProductionData');
 
-	EXEC SapProductionData @Start = @LastRunEnd, @End = @PrevHourEnd;
+	EXEC SapProductionData @Start = @LastRun, @End = @End;
 GO
 
-CREATE PROCEDURE SapIssueData_SinceLastRun AS
-	DECLARE @LastRunEnd  DATETIME = (SELECT last_runtime FROM HighSteel.RuntimeInfo WHERE name='SapIssueData');
-	DECLARE @PrevHourEnd DATETIME = DATEADD(HOUR, DATEDIFF(HOUR, 0, GETDATE()), 0);
+CREATE PROCEDURE SapIssueData_SinceLastRun
+	@End DATETIME
+AS
+	DECLARE @LastRun DATETIME = (SELECT last_runtime FROM HighSteel.RuntimeInfo WHERE name='SapIssueData');
 
-	EXEC SapIssueData @Start = @LastRunEnd, @End = @PrevHourEnd;
+	EXEC SapIssueData @Start = @LastRun, @End = @End;
 GO
 
 IF NOT EXISTS (SELECT name FROM HighSteel.RuntimeInfo WHERE name='SapProductionData')

@@ -22,8 +22,8 @@ impl Dataset {
 
     fn query(&self) -> &str {
         match self {
-            Self::Production => "EXEC SapProductionData_SinceLastRun",
-            Self::Issue      => "EXEC SapIssueData_SinceLastRun"
+            Self::Production => "EXEC SapProductionData_SinceLastRun @End = @P1",
+            Self::Issue      => "EXEC SapIssueData_SinceLastRun @End = @P1",
         }
     }
 
@@ -38,7 +38,7 @@ impl Dataset {
         let name = self.name();
 
         log::trace!("pulling {} dataset", name);
-        let data = client.simple_query(self.query()).await?
+        let data = client.query(self.query(), &[&end]).await?
             .into_first_result().await?;
 
         if data.len() == 0 {
