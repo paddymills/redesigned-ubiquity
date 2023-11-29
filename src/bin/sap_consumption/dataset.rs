@@ -68,10 +68,11 @@ impl Dataset {
 
                     error
                 })?;
-
-            client.execute("UPDATE HighSteel.RuntimeInfo SET last_runtime=@P1 WHERE name=@P2", &[&end, &format!("Sap{}Data", name)]).await?;
         }
-    
+
+        // update last runtime 
+        client.execute("UPDATE HighSteel.RuntimeInfo SET last_runtime=@P1 WHERE name=@P2", &[&end, &format!("Sap{}Data", name)]).await?;
+            
         Ok(())
     }
 }
