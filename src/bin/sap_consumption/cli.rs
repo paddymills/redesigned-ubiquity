@@ -1,6 +1,6 @@
 
 use clap::{Parser, Subcommand};
-use clap_verbosity_flag::Verbosity;
+use clap_verbosity_flag::{Verbosity, InfoLevel};
 use std::path::PathBuf;
 use sysinteg::config::TomlConfig;
 
@@ -13,7 +13,7 @@ pub struct Cli {
     command: Option<Command>,
     
     #[command(flatten)]
-    verbose: Verbosity,
+    verbose: Verbosity<InfoLevel>,
 }
 
 #[derive(Debug, Subcommand)]
