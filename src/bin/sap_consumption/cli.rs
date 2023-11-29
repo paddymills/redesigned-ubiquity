@@ -13,7 +13,7 @@ pub struct Cli {
     command: Option<Command>,
     
     #[command(flatten)]
-    verbose: Verbosity<InfoLevel>,
+    pub verbose: Verbosity<InfoLevel>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -50,7 +50,7 @@ impl Cli {
 
     }
 
-    pub fn log_level(&self) -> log::Level {
-        self.verbose.log_level().unwrap_or(log::Level::Warn)
+    pub fn log_level_filter(&self) -> log::LevelFilter {
+        self.verbose.log_level_filter()
     }
 }

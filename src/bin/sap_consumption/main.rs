@@ -8,6 +8,8 @@ mod dataset;
 
 use chrono::{Local, NaiveDateTime, NaiveTime, Timelike};
 use clap::Parser;
+use eventlog::EventLog;
+use log::Log;
 use std::path::PathBuf;
 
 use config::{CONFIG_FILE, SapConsumptionConfig};
@@ -23,8 +25,16 @@ async fn main() -> anyhow::Result<()> {
         let config = SapConsumptionConfig::load(&PathBuf::from(CONFIG_FILE))?;
 
         // init logger
-        eventlog::init(&config.logging_name, args.log_level())?;
+        // we sill use the the most verbose logging level because fern will handle level filtering
+        let event_logger: Box<dyn Log> = Box::new( EventLog::new(&config.logging_name, log::Level::max())? );
+        fern::Dispatch::new()
+            .level(log::LevelFilter::Warn)
+            .level_for("sysint", args.log_level_filter())
+            .level_for("sap_consumption", args.log_level_filter())
+            .chain(event_logger)
+            .apply()?;
         
+        // pull data
         pull_interval(config).await?;
     }
 

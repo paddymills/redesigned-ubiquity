@@ -14,6 +14,7 @@ chrono = "0.4.31"
 clap = { version = "4.4.8", features = ["derive", "cargo"] }
 clap-verbosity-flag = "2.1.0"
 eventlog = "0.2.2"
+fern = "0.6.2"
 log = "0.4.20"
 serde = { version = "1.0.192", features = ["derive"] }
 tiberius = { version = "0.12.2", features = ["sql-browser-tokio", "integrated-auth-gssapi", "chrono"] }
