@@ -1,6 +1,6 @@
 
-// hide terminal window, if not a debug build
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// hide terminal window, if not a debug build and terminal feature is not enabled
+#![cfg_attr(all(not(debug_assertions), not(feature = "terminal")), windows_subsystem = "windows")]
 
 mod cli;
 mod config;
@@ -57,7 +57,7 @@ async fn init_logging(config: &SapConsumptionConfig, args: &cli::Cli) -> anyhow:
         MssqlDbLogger::new(&config.logging_name, config.database.connect().await?, loggers_cfg_level) );
 
 
-    fern::Dispatch::new()
+    let logger = fern::Dispatch::new()
         // Tokio/Tiberius (and maybe other dependencies) do some logging of their own.
         //  This allows us to use a lower log level, while silencing their verbose logs.
         .level(log::LevelFilter::Warn)
@@ -68,10 +68,14 @@ async fn init_logging(config: &SapConsumptionConfig, args: &cli::Cli) -> anyhow:
         .chain(event_logger)
 
         // database logger (Actor pattern where database transactions happen on a separate thread)
-        .chain(db_logger)
+        .chain(db_logger);
 
-        // register as the global logger (this will fail if a global logger is already set)
-        .apply()?;
+    // log to stdout if not a debug build or terminal feature is enabled
+    #[cfg(all(not(debug_assertions), not(feature = "terminal")))]
+    logger.chain(std::io::stdout());
+
+    // register as the global logger (this will fail if a global logger is already set)
+    logger.apply()?;
 
     Ok(())
 }
