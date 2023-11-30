@@ -13,8 +13,9 @@ use log::Log;
 use std::path::PathBuf;
 
 use config::{CONFIG_FILE, SapConsumptionConfig};
-use sysinteg::config::TomlConfig;
 use dataset::Dataset;
+use sysinteg::config::TomlConfig;
+use sysinteg::logging::MssqlDbLogger;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -24,15 +25,7 @@ async fn main() -> anyhow::Result<()> {
         // load config
         let config = SapConsumptionConfig::load(&PathBuf::from(CONFIG_FILE))?;
 
-        // init logger
-        // we sill use the the most verbose logging level because fern will handle level filtering
-        let event_logger: Box<dyn Log> = Box::new( EventLog::new(&config.logging_name, log::Level::max())? );
-        fern::Dispatch::new()
-            .level(log::LevelFilter::Warn)
-            .level_for("sysint", args.log_level_filter())
-            .level_for("sap_consumption", args.log_level_filter())
-            .chain(event_logger)
-            .apply()?;
+        init_logging(&config, &args).await?;
         
         // pull data
         pull_interval(config).await?;
@@ -50,6 +43,35 @@ async fn pull_interval(config: SapConsumptionConfig) -> anyhow::Result<()> {
     let mut client = config.database.connect().await?;
     Dataset::Production.pull_data(&mut client, end, &config.output_dir).await?;
     Dataset::Issue.pull_data(&mut client, end, &config.output_dir).await?;
+
+    Ok(())
+}
+
+async fn init_logging(config: &SapConsumptionConfig, args: &cli::Cli) -> anyhow::Result<()> {
+    // we sill use the the most verbose logging level because fern will handle level filtering
+    let loggers_cfg_level = log::Level::max();
+
+    let event_logger: Box<dyn Log> = Box::new(
+        EventLog::new(&config.logging_name, loggers_cfg_level)? );
+    let db_logger: Box<dyn Log> = Box::new(
+        MssqlDbLogger::new(&config.logging_name, config.database.connect().await?, loggers_cfg_level) );
+
+
+    fern::Dispatch::new()
+        // Tokio/Tiberius (and maybe other dependencies) do some logging of their own.
+        //  This allows us to use a lower log level, while silencing their verbose logs.
+        .level(log::LevelFilter::Warn)
+        .level_for("sysint", args.log_level_filter())
+        .level_for("sap_consumption", args.log_level_filter())
+
+        // log to Windows Event Log
+        .chain(event_logger)
+
+        // database logger (Actor pattern where database transactions happen on a separate thread)
+        .chain(db_logger)
+
+        // register as the global logger (this will fail if a global logger is already set)
+        .apply()?;
 
     Ok(())
 }

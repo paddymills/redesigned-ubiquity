@@ -10,7 +10,14 @@ GO
 
 CREATE TABLE HighSteel.RuntimeInfo (
 	id int IDENTITY(1,1) PRIMARY KEY,
-	name varchar(255) ,
+	name varchar(255),
 	last_runtime datetime
+);
+CREATE TABLE HighSteel.Log (
+	id int IDENTITY(1,1) PRIMARY KEY,
+	timestamp DateTime,
+	app varchar(255),
+	level varchar(64),
+	message varchar(255)
 );
 GO
