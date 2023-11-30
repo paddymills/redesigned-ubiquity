@@ -72,7 +72,7 @@ async fn init_logging(config: &SapConsumptionConfig, args: &cli::Cli) -> anyhow:
 
     // log to stdout if not a debug build or terminal feature is enabled
     #[cfg(all(not(debug_assertions), not(feature = "terminal")))]
-    logger.chain(std::io::stdout());
+    let logger = logger.chain(std::io::stdout());
 
     // register as the global logger (this will fail if a global logger is already set)
     logger.apply()?;
