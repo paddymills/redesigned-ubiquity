@@ -37,12 +37,12 @@ impl Dataset {
     pub async fn pull_data(self, client: &mut DbClient, end: chrono::NaiveDateTime, output_dir: &PathBuf) -> Result<()> {
         let name = self.name();
 
-        log::trace!("pulling {} dataset", name);
+        log::trace!("pulling dataset `{}`", name);
         let data = client.query(self.query(), &[&end]).await?
             .into_first_result().await?;
 
         if data.len() == 0 {
-            log::debug!("Dataset {} is empty", name);
+            log::info!("Dataset `{}` is empty", name);
         } else {
             // TODO: store on server for verification once feedback loop from SAP is established
             let filename = self.filename(end, output_dir);
@@ -53,7 +53,7 @@ impl Dataset {
                     error
                 })?;
         
-            log::trace!("Writing dataset {}", name);
+            log::trace!("Writing dataset `{}`", name);
             let file_contents = data
                 .into_iter()
                 // convert row to tab delimited string
@@ -63,7 +63,7 @@ impl Dataset {
     
             file.write_all(file_contents.as_bytes())
                 .map_err(|error| {
-                    log::error!("failed to write {} dataset to {}. Deleting file.", name, &filename.to_str().unwrap());
+                    log::error!("failed to write dataset `{}` to {}. Deleting file.", name, &filename.to_str().unwrap());
                     let _ = std::fs::remove_file(filename);
 
                     error
