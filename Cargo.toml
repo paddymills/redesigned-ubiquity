@@ -8,10 +8,6 @@ repository = "https://github.com/paddymills/redesigned-ubiquity"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-default = []
-terminal = []
-
 [dependencies]
 anyhow = "1.0.75"
 chrono = "0.4.31"
