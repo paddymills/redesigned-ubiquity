@@ -13,7 +13,7 @@ pub type DbResult<T> = Result<T, Error>;
 
 
 /// Parameters for a SQL Server connection
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DbConnParams {
     /// Server name
     pub server: String,
