@@ -1,7 +1,10 @@
-
+// tokio has asyncronous file operations,
+//  but we don't need to use them since file
+//  operations are done on the main thread.
 use std::fs::File;
-use std::path::PathBuf;
 use std::io::Write;
+
+use std::path::PathBuf;
 
 use tiberius::Result;
 use sysinteg::db::{self, DbClient};
