@@ -122,7 +122,6 @@ AS
 				THEN 'PR02'
 			ELSE 'PR03'	-- Sheets.Wbs is for a different Job
 		END AS Code,
-		PartName,
 		CASE
 			WHEN Shipment LIKE '20[0-9][0-9]'
 				THEN Shipment
