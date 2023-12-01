@@ -11,13 +11,16 @@ The reason for the install/uninstall pertains to the usage of the Windows Event 
 ### Install process
 
 1) Place the binary (`sap_consumption.exe`) at the file location that it will reside.
-2) Run 'sap_consumption.exe generate-config'. This will generate the `config.toml` file in the location from step 1.
-3) Edit `config.toml` from step 2.
-    - output_dir: The network path to where the files will be written to.
-    - logging_name: The application name used in the Windows Event Logger.
-    - database: The server and database of the Sigmanest database.
-4) Open a terminal or command prompt as Administrator and run 'sap_consumption.exe install' to register the application with the logger.
-5) Make a Windows scheduled task to run the executable on a planned interval (e.g. every hour)
+2) Configuration file
+    - If you are supplied a `config.toml` file, place it is the same folder used in step 1.
+    - If you do not have a `config.toml` file
+        1) Run `sap_consumption.exe generate-config`. This will generate the `config.toml`
+        2) Edit `config.toml` that was generated.
+            - output_dir: The network path to where the files will be written to.
+            - logging_name: The application name used in the Windows Event Logger.
+            - database: The server and database of the Sigmanest database.
+3) Open a terminal or command prompt as Administrator and run `sap_consumption.exe install` to register the application with the logger.
+4) Make a Windows scheduled task to run the executable on a planned interval (e.g. every hour)
 
 ### Permissions
 
