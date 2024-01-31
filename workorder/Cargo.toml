@@ -1,0 +1,18 @@
+[package]
+name = "workorder"
+description = "Work order management"
+version = "0.1.0"
+edition = "2021"
+authors = ["Patrick Miller"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/paddymills/redesigned-ubiquity"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.4.8", features = ["derive", "cargo"] }
+clap-verbosity-flag = "2.1.0"
+log  = { workspace = true }
+pretty_env_logger = "0.5.0"
+sysinteg-core = { workspace = true }
+tokio = { workspace = true }

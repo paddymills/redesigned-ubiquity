@@ -11,7 +11,6 @@ pub type DbClient = Client<Compat<TcpStream>>;
 /// Result type for SQL Server database
 pub type DbResult<T> = Result<T, Error>;
 
-
 /// Parameters for a SQL Server connection
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DbConnParams {
@@ -29,7 +28,7 @@ impl DbConnParams {
     }
 }
 
-impl crate::config::TomlConfig for DbConnParams {}
+impl sysinteg_core::config::TomlConfig for DbConnParams {}
 
 impl Default for DbConnParams {
     fn default() -> Self {

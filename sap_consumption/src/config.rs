@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use sysinteg::config::TomlConfig;
-use sysinteg::db::DbConnParams;
+use sysinteg_core::config::TomlConfig;
+use sysinteg_db::DbConnParams;
 
 pub const CONFIG_FILE: &str = "config.toml";
 

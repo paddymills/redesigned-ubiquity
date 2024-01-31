@@ -1,7 +1,6 @@
 
 //! logging framework
 
-
 use chrono::{Local, NaiveDateTime};
 use eventlog::EventLog;
 use log::{Level, Log, LevelFilter};
@@ -9,7 +8,7 @@ use log::{Level, Log, LevelFilter};
 use tokio::sync::mpsc::{self, Sender, Receiver};
 use tokio::task::JoinHandle;
 
-use super::db::*;
+use sysinteg_db::*;
 
 const CONTROLLER_TARGET: &str = "LOGGING_CONTROLLER";
 
@@ -27,6 +26,7 @@ struct LogMessage {
     message: String
 }
 
+// TODO: move to sysinteg-db
 /// Logger that logs to a MSSQL database
 #[derive(Debug)]
 pub struct MssqlDbLogger {

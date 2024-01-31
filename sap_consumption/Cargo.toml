@@ -1,0 +1,23 @@
+[package]
+name = "sap-consumption"
+description = "Sap Consumption file generator"
+version = "0.1.0"
+edition = "2021"
+authors = ["Patrick Miller"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/paddymills/redesigned-ubiquity"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+chrono = "0.4.31"
+clap = { version = "4.4.8", features = ["derive", "cargo"] }
+clap-verbosity-flag = "2.1.0"
+eventlog = "0.2.2"
+fern = "0.6.2"
+log = { workspace = true }
+serde = { workspace = true }
+sysinteg-core = { workspace = true }
+sysinteg-db = { workspace = true }
+tokio = { workspace = true }

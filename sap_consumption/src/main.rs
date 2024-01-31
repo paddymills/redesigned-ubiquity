@@ -5,6 +5,7 @@
 mod cli;
 mod config;
 mod dataset;
+mod logging;
 
 use chrono::{Local, NaiveDateTime, NaiveTime, Timelike};
 use clap::Parser;
@@ -12,8 +13,8 @@ use std::path::PathBuf;
 
 use config::{CONFIG_FILE, SapConsumptionConfig};
 use dataset::Dataset;
-use sysinteg::config::TomlConfig;
-use sysinteg::logging::EventAndDbLogger;
+use sysinteg_core::config::TomlConfig;
+use logging::EventAndDbLogger;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

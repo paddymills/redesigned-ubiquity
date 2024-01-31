@@ -6,8 +6,8 @@ use std::io::Write;
 
 use std::path::PathBuf;
 
-use tiberius::Result;
-use sysinteg::db::{self, DbClient};
+// use tiberius::Result;
+use sysinteg_db::{self, DbClient, DbResult};
 
 
 pub enum Dataset {
@@ -37,7 +37,7 @@ impl Dataset {
         filename
     }
 
-    pub async fn pull_data(self, client: &mut DbClient, end: chrono::NaiveDateTime, output_dir: &PathBuf) -> Result<()> {
+    pub async fn pull_data(self, client: &mut DbClient, end: chrono::NaiveDateTime, output_dir: &PathBuf) -> DbResult<()> {
         let name = self.name();
 
         log::trace!("pulling dataset `{}`", name);
@@ -60,7 +60,7 @@ impl Dataset {
             let file_contents = data
                 .into_iter()
                 // convert row to tab delimited string
-                .map(|row| db::row_to_string(row))
+                .map(|row| sysinteg_db::row_to_string(row))
                 .collect::<Vec<String>>()
                 .join("\n");
     

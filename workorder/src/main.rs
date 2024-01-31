@@ -2,7 +2,7 @@
 use clap::{Parser, Subcommand};
 use pretty_env_logger;
 
-use sysinteg::api::JobShipment;
+use sysinteg_core::api::JobShipment;
 
 /// Work order management system
 #[derive(Debug, Parser)]

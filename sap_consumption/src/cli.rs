@@ -2,7 +2,7 @@
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::{Verbosity, InfoLevel};
 use std::path::PathBuf;
-use sysinteg::config::TomlConfig;
+use sysinteg_core::config::TomlConfig;
 
 use crate::config::{CONFIG_FILE, SapConsumptionConfig};
 
