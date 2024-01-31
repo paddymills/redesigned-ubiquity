@@ -7,10 +7,8 @@ use std::sync::LazyLock;
 
 static JOB_SHIPMENT_PATTERN: LazyLock<regex::Regex> = LazyLock::new(|| regex::Regex::new(r"^(\d{7}[[:alpha:]])-(\d+)$").expect("failed to build JOB_SHIPMENT_PATTERN regex"));
 
-/// Job number (with structure letter) and ship
-
 /// Job number (with structure letter) and shipment
-#[derive(Debug, Clone, clap::Args)]
+#[derive(Debug, Clone)]
 pub struct JobShipment {
     /// Job Number
     job: String,
