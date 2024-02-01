@@ -1,4 +1,6 @@
 
+//! database connections
+
 mod client;
 mod utils;
 

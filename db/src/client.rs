@@ -1,5 +1,5 @@
 
-//! database connections
+//! Database client
 
 use serde::{Deserialize, Serialize};
 use tiberius::{AuthMethod, Client, Config, error::Error, ColumnData, Row};
