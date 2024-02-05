@@ -2,7 +2,7 @@
 //! Database client
 
 use serde::{Deserialize, Serialize};
-use tiberius::{AuthMethod, Client, Config, error::Error, ColumnData, Row};
+use tiberius::{AuthMethod, Client, Config, error::Error};
 use tokio::net::TcpStream;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 

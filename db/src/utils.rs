@@ -1,5 +1,7 @@
 
 //! Database utilities
+//! 
+use tiberius::{ColumnData, Row};
 
 /// convert SQL Server column to string, regardless of datatype
 pub fn column_to_str(column: ColumnData) -> String {
