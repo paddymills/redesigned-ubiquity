@@ -10,11 +10,11 @@ use std::{
 /// trait to allow for easy serde of a config
 pub trait TomlConfig {
     /// load the configuration from `config.toml` in the root directory
-    fn load(path: &PathBuf) -> anyhow::Result<Self>
+    fn load<T: Into<PathBuf>>(path: T) -> anyhow::Result<Self>
         where Self: Sized + serde::de::DeserializeOwned
     {
         // read file
-        let toml_contents = fs::read_to_string(path)?;
+        let toml_contents = fs::read_to_string(path.into())?;
 
         // parse toml file text
         let parsed = toml::from_str::<Self>(&toml_contents)?;
@@ -23,12 +23,12 @@ pub trait TomlConfig {
     }
 
     /// generate an example config
-    fn generate(path: &PathBuf) -> anyhow::Result<()>
+    fn generate<T: Into<PathBuf>>(path: T) -> anyhow::Result<()>
         where Self: Sized + Default + serde::Serialize
     {
         let toml = toml::to_string(&Self::default())?;
         
-        let mut file = File::create(path)?;
+        let mut file = File::create(path.into())?;
         file.write_all(toml.as_bytes())?;
 
         Ok(())
