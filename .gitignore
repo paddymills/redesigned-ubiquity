@@ -1,6 +1,9 @@
 
+*.toml
+!Cargo.toml
 Cargo.lock
-target/
 
-config.toml
+*.log
+
+target/
 deploy/
