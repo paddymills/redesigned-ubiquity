@@ -5,7 +5,7 @@ use regex::Regex;
 use std::sync::LazyLock;
 
 // HD wbs element
-static HD_WBS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"D-(\d{7})-\d{5}").unwrap());
+static HD_WBS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"D-(\d{7})-(\d{5})").unwrap());
 // old, non-hd, wbs element
 static LEGACY_WBS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"S-(\d{7})-2-(\d{2})").unwrap());
 
