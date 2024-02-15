@@ -3,9 +3,9 @@
 use crossterm::{
     cursor,
     event,
-    style::{self, Print, Stylize},
+    style::{self, Stylize},
     terminal::{self, disable_raw_mode, enable_raw_mode},
-    ExecutableCommand, QueueableCommand
+    QueueableCommand
 };
 
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
