@@ -15,7 +15,7 @@ pub struct Sheet {
     /// Heat number
     pub heat: String,
     /// Purchase Order number
-    pub po: u64,
+    pub po: String,
     /// SAP WBS element
     pub wbs: Option<Wbs>
 }

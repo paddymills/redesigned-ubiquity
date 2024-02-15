@@ -1,0 +1,26 @@
+[package]
+name = "updatedprograms"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.79"
+chrono = "0.4.33"
+comfy-table = "7.1.0"
+crossterm = { version = "0.27.0", features = ["event-stream"] }
+dialoguer = "0.11.0"
+log = { workspace = true }
+simplelog = "0.12.1"
+sysinteg-core = { workspace = true }
+sysinteg-db = { workspace = true }
+tiberius = { version = "0.12.2", features = ["chrono"] }
+tokio = { workspace = true }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.11"
+
+[dev-dependencies]
+rand = "0.8.5"
