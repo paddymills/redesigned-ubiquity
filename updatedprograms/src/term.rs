@@ -44,6 +44,8 @@ impl TableTerminal {
             H: Into<Row>,
             T: Into<Row> + Send + 'static + std::fmt::Debug
     {
+        println!("{INSTRUCTIONS}");
+
         // let mut stdout = Term::stdout();
         let mut stdout = std::io::stdout();
 
@@ -58,9 +60,6 @@ impl TableTerminal {
             .set_header(header);
 
         let mut lines_printed = 0u16;
-
-
-        stdout.execute(Print(INSTRUCTIONS))?;
 
         loop {
             if let Ok(true) = event::poll(Duration::from_millis(100)) {
