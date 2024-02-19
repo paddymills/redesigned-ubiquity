@@ -10,7 +10,7 @@ use std::sync::mpsc;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     if cfg!(debug_assertions) {
-        let level = simplelog::LevelFilter::Trace;
+        let level = simplelog::LevelFilter::Info;
         let config = simplelog::ConfigBuilder::new()
             .add_filter_ignore_str("tiberius")
             .build();
@@ -18,8 +18,6 @@ async fn main() -> anyhow::Result<()> {
         let _ = simplelog::WriteLogger::init(level, config, std::fs::File::create("updatedprograms.log").unwrap());
     }
     
-    log::info!("program start");
-
     let cfg = DbConnParams::load("db.toml")?;
     let mut client = cfg.connect().await.expect("Failed to connect to database");
 
@@ -46,9 +44,9 @@ async fn main() -> anyhow::Result<()> {
             let _ = tx_display.send(message);
         }
 
-        log::info!("Database thread shutting down");
+        log::trace!("Database thread shutting down");
     });
 
     let handler = InputHandler::new("Program", tx_db);
-    TableTerminal::input_loop(HEADER, rx_display, handler)
+    TableTerminal::new(HEADER, handler).input_loop(rx_display)
 }

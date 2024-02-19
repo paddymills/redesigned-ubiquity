@@ -1,5 +1,4 @@
 
-
 use crossterm::{
     cursor,
     event,
@@ -12,7 +11,7 @@ use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL_CONDENSED;
 use comfy_table::*;
 
-use std::{io::Write, sync::mpsc, time::Duration};
+use std::{io::{Stdout, Write}, sync::mpsc, time::Duration};
 
 use crate::InputHandler;
 
@@ -29,28 +28,23 @@ const INSTRUCTIONS: &str = r#"
 "#;
 
 
-#[derive(Debug, Default)]
-pub struct TableTerminal {}
-
 #[derive(Debug)]
 pub enum DisplayUpdate<T> {
     DbResult(T),
     DbMessage(String),
 }
 
+#[derive(Debug)]
+pub struct TableTerminal {
+    write_to: Stdout,
+    handler: InputHandler,
+
+    table: Table,
+    lines_drawn: u16,
+}
+
 impl TableTerminal {
-    pub fn input_loop<H, T>(header: H, rx: mpsc::Receiver<DisplayUpdate<T>>, mut handler: InputHandler) -> anyhow::Result<()>
-        where
-            H: Into<Row>,
-            T: Into<Row> + Send + 'static + std::fmt::Debug
-    {
-        println!("{INSTRUCTIONS}");
-
-        // let mut stdout = Term::stdout();
-        let mut stdout = std::io::stdout();
-
-        enable_raw_mode().expect("failed to enable raw mode for keyboard input");
-        
+    pub fn new(header: impl Into<Row>, handler: InputHandler) -> Self {
         let mut table = Table::new();
 
         table
@@ -59,62 +53,102 @@ impl TableTerminal {
             .set_content_arrangement(ContentArrangement::Dynamic)
             .set_header(header);
 
-        let mut lines_printed = 0u16;
+        Self {
+            write_to: std::io::stdout(),
+            handler,
+            table,
+            lines_drawn: 0
+        }
+    }
+
+    pub fn input_loop<T>(&mut self, rx: mpsc::Receiver<DisplayUpdate<T>>) -> anyhow::Result<()>
+        where
+            T: Into<Row> + Send + 'static + std::fmt::Debug
+    {
+        println!("{INSTRUCTIONS}");
+
+        enable_raw_mode().expect("failed to enable raw mode for keyboard input");
 
         loop {
             if let Ok(true) = event::poll(Duration::from_millis(100)) {
-                if let Err(0) = handler.handle_input(event::read()?) {
-                    stdout.queue(cursor::MoveToColumn(0))?;
-                    stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
-                    stdout.queue(style::Print(String::from("Goodbye...")))?;
-                    stdout.flush()?;
+                if let Err(0) = self.handler.handle_input(event::read()?) {
+                    self.write_to.queue(cursor::MoveToColumn(0))?;
+                    self.write_to.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+                    self.write_to.queue(style::Print(String::from("Goodbye...")))?;
+                    self.write_to.flush()?;
                     break;
                 }
             }
 
             // move to start of row, in case no vertical moves are processed
-            stdout.queue(cursor::MoveToColumn(0))?;
-            stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+            self.write_to.queue(cursor::MoveToColumn(0))?;
+            self.write_to.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
 
             // handle database results
             if let Ok(res) = rx.try_recv() {
                 match res {
                     DisplayUpdate::DbResult(parsed) => {
                         log::trace!("Adding row to table: {:?}", parsed);
-                        table.add_row(parsed);
+                        self.table.add_row(parsed);
 
-                        // prepare for reprint
-                        stdout.queue(cursor::MoveUp(lines_printed))?;
-                        stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
-
-                        // print table
-                        lines_printed = 0;
-                        for line in table.lines() {
-                            stdout.queue(style::Print( format!("{line}\n") ))?;
-                            lines_printed += 1;
-                        }
+                        self.draw_table()?
                     },
-                    DisplayUpdate::DbMessage(msg) => {
-                        log::trace!("Displaying message `{}`", msg);
-
-                        // if message was printed
-                        if lines_printed == table.lines().count() as u16 + 1 {
-                            stdout.queue(cursor::MoveUp(1))?;
-                        }
-
-                        stdout.queue(style::PrintStyledContent( format!("{msg}\n").red() ))?;
-                        lines_printed += 1;
-                    }
+                    DisplayUpdate::DbMessage(msg) => self.draw_message(msg)?
                 }
             }
 
-            handler.prompt(&mut stdout)?;
-            stdout.flush()?;
+            self.draw_prompt()?;
+            self.write_to.flush()?;
         }
 
         log::info!("Terminal writer shutting down");
         let _ = disable_raw_mode();
         
+        Ok(())
+    }
+
+    fn draw_table(&mut self) -> anyhow::Result<()> {
+        // prepare for reprint
+        self.write_to.queue(cursor::MoveUp(self.lines_drawn))?;
+        self.write_to.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+
+        // print table
+        self.lines_drawn = 0;
+        for line in self.table.lines() {
+            self.write_to.queue(style::Print( format!("{line}\n") ))?;
+            self.lines_drawn += 1;
+        }
+
+        self.draw_prompt()
+    }
+
+    fn draw_message(&mut self, msg: String) -> anyhow::Result<()> {
+        log::trace!("Displaying message `{}`", msg);
+
+        if self.lines_drawn == self.table.lines().count() as u16 + 1 {
+            // message was printed
+            log::trace!("Previous message printed. drawn: {} table_len: {}", self.lines_drawn, self.table.lines().count());
+            self.write_to.queue(cursor::MoveUp(1))?;
+            self.lines_drawn -= 1;
+        } else {
+            log::trace!("No previous message printed. drawn: {} table_len: {}", self.lines_drawn, self.table.lines().count());
+            self.write_to.queue(cursor::MoveToColumn(0))?;
+        }
+
+        self.write_to.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+
+        self.write_to.queue(style::PrintStyledContent( format!("{msg}\n").red() ))?;
+        self.lines_drawn += 1;
+
+        self.draw_prompt()
+    }
+
+    fn draw_prompt(&mut self) -> anyhow::Result<()> {
+        self.write_to.queue(cursor::MoveToColumn(0))?;
+        self.write_to.queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+
+        self.handler.prompt(&mut self.write_to)?;
+
         Ok(())
     }
 }
