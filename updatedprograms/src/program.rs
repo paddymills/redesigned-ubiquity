@@ -22,7 +22,7 @@ impl Into<Row> for Program {
         match &self.state {
             ProgramState::Active(timestamp) => {
                 row
-                    .add_cell(Cell::new("active").fg(Color::Blue))
+                    .add_cell(Cell::new("Active").fg(Color::Blue))
                     .add_cell(Cell::new(timestamp.format(DATE_FORMAT).to_string()))
                     .add_cell(Cell::new(self.sheet.mm))
                     .add_cell(Cell::new(""))
@@ -40,7 +40,7 @@ impl Into<Row> for Program {
             },
             ProgramState::Updated { timestamp, operator } => {
                 row
-                    .add_cell(Cell::new("updated").fg(Color::Green))
+                    .add_cell(Cell::new("Updated").fg(Color::Green))
                     .add_cell(Cell::new(timestamp.format(DATE_FORMAT).to_string()))
                     .add_cell(Cell::new(self.sheet.mm))
                     .add_cell(Cell::new(self.sheet.heat))
