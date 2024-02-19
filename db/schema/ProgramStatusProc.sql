@@ -36,7 +36,7 @@ AS
 					ELSE Program.ArcDateTime
 				END AS Timestamp,
 				Program.ProgramName,
-				Stock.SheetName,
+				Program.SheetName,
 				Stock.PrimeCode AS MaterialMaster,
 				Stock.HeatNumber,
 				LEFT(Stock.BinNumber, 10) AS PoNumber,
