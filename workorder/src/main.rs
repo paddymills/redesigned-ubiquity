@@ -1,6 +1,5 @@
 
 use clap::{Parser, Subcommand};
-use pretty_env_logger;
 
 use sysinteg_core::api::JobShipment;
 

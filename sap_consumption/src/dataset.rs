@@ -7,7 +7,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 // use tiberius::Result;
-use sysinteg_db::{self, DbClient, DbResult};
+use sysinteg_db::{DbClient, DbResult};
 
 
 pub enum Dataset {
