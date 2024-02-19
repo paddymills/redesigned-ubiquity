@@ -74,13 +74,14 @@ impl InputHandler {
                     },
                     KeyCode::Backspace => { self.buffer.pop(); },
                     KeyCode::Char(c) => self.buffer.push(c),
+                    // TODO: {Left, Right, Up, Down, Home, End}
+                    // TODO: {Delete}
+                    // TODO: {PrintScreen} -> copy to clipboard
+                    // KeyCode::PrintScreen => {},
                     _ => ()
                 }
             },
             Event::Paste(data) => self.buffer.push_str(&data),
-            // TODO: keyboard: {Left, Right, Up, Down, Home, End}
-            // TODO: keyboard: {Delete}
-            // TODO: keyboard: {PrintScreen} -> copy to clipboard
             // TODO: mouse support
             // Event::Mouse(event) => (),  
             _ => ()
