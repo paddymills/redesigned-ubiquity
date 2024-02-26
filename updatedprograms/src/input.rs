@@ -1,114 +1,234 @@
 
-use crossterm::{
-    event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
-    style::{Print, PrintStyledContent, Stylize},
-    QueueableCommand
-};
-use std::{
-    io::{self, Write},
-    sync::mpsc::Sender
-};
-// use tokio::sync::mpsc::Sender;
+use crossterm::{cursor, terminal, QueueableCommand};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::style::{Print, Stylize};
 
-const DELIMS: &[char; 2] = &['-', '_'];
-const EXPECTED_PROGRAM_NAME_LENGTH: usize = 5;
+use std::io::{self, Seek, SeekFrom, Write};
+use std::sync::mpsc::Sender;
 
+use super::{DisplayUpdate, InputBuffer, InputHandler};
 
-#[derive(Debug)]
-pub struct InputHandler {
-    prompt: String,
-    last_input: String,
-    buffer: String,
+const COMMANDS: &str = r#"
+    ##############################################################
+    #                          Commands                          #
+    #                     ------------------                     #
+    # :c, :clear     ->  Clear the table                         #
+    # :r, :reset     ->  Reset the input history                 #
+    # :p, :print     ->  Write the table to the system clipboard #
+    ##############################################################
+"#;
+const TIPS: &str = r#"
+    ##############################################################
+    #                        Instructions                        #
+    #                     ------------------                     #
+    # This utility will query the database for the status of the #
+    # program the user inputs.                                   #
+    #                     ------------------                     #
+    # * Type a program name and press enter to get the status    #
+    # * To exit, either press Escape or submit a blank input     #
+    # * The prefix(input before a - or _) of the last input      #
+    #     will be used to autocomplete the current input prefix  #
+    #     (as shown by the dimmed text)                          #
+    #                     ------------------                     #
+    # * Type : for command mode (commands will be displayed)     #
+    # * If the prefix completion becomes an issue, type :reset   #
+    #                     ------------------                     #
+    #                (press Escape or ? to close)                #
+    ##############################################################
+"#;
 
-    db: Sender<String>,
+#[derive(Debug, PartialEq)]
+enum InputMode {
+    Prompt(bool /* show tips */ ),
+    Command
 }
 
-impl InputHandler {
-    pub fn new<S: ToString>(prompt: S, db: Sender<String>) -> Self {
-        Self {
-            prompt: prompt.to_string(),
-            last_input: String::new(),
-            buffer: String::new(),
+#[derive(Debug)]
+pub struct ProgramInputHandler<T: Into<comfy_table::Row>> {
+    buffers: Vec<InputBuffer>,
+    buffer_id: usize,
+    submit_to: Sender<String>,
+    display: Sender<DisplayUpdate<T>>,
+    mode: InputMode,
+}
 
-            db,
+impl<T: Into<comfy_table::Row>> ProgramInputHandler<T> {
+    pub fn new(submit_to: Sender<String>, display: Sender<DisplayUpdate<T>>) -> Self {
+        Self {
+            buffers: vec![InputBuffer::new()],
+            buffer_id: 0,
+            submit_to,
+            display,
+            mode: InputMode::Prompt(false)
         }
     }
 
-    /// Handle input event
-    /// 
-    /// returns Err(0) if the input matches a quit condition
-    pub fn handle_input(&mut self, event: Event) -> Result<(), u32> {
-        log::trace!("Received event: {:?}", event);
+    fn buffer(&self) -> &InputBuffer {
+        assert!(self.buffer_id < self.buffers.len());
+        self.buffers.get(self.buffer_id).unwrap()
+    }
 
+    fn buffer_mut(&mut self) -> &mut InputBuffer {
+        assert!(self.buffer_id < self.buffers.len());
+        self.buffers.get_mut(self.buffer_id).unwrap()
+    }
+
+    fn switch_buffer(&mut self, direction: i64) {
+        if let InputMode::Prompt(_) = self.mode {
+            self.buffer_id = (self.buffer_id as i64 + direction).clamp(0i64, self.buffers.len() as i64 - 1) as usize;
+        }
+    }
+
+    fn previous_prefix(&self) -> Option<&str> {
+        match self.buffers.len() {
+            l if l > 1 && self.buffer_id == l-1
+                // current buffer is the last buffer and there is a previous buffer
+                => Some(self.buffers.get(self.buffer_id - 1).unwrap().prefix()),
+            _ => None
+        }
+    }
+
+    fn commit_buffer(&mut self) -> io::Result<()> {
+        match self.mode {
+            InputMode::Prompt(_) => {
+                // apply previous buffer prefix to current one
+                let prefix = String::from(self.previous_prefix().unwrap_or(""));    // String required to escape mutable and immutable reference conflict
+                self.buffers.get_mut(self.buffer_id).unwrap().apply_prefix(&prefix)?;
+
+                // Send input to database for results
+                match self.submit_to.send(self.buffer().to_string()) {
+                    Ok(_) => log::info!("`{}` sent to db thread", self.buffer()),
+                    Err(e) => log::error!("Error sending input to db thread: {}", e)
+                }
+
+                // reset buffer
+                self.buffer_id = self.buffers.len();
+                self.buffers.push( InputBuffer::new() );
+            },
+            InputMode::Command => {
+                match self.buffer().to_string().to_lowercase().as_str() {
+                    ":r" | ":reset" => {
+                        self.buffers = self.buffers.split_off(self.buffers.len() - 3);
+                        self.buffer_id = 0;
+                    },
+                    ":c" | ":clear" => self.ui_update(DisplayUpdate::ClearTable),
+                    ":p" | ":print" => self.ui_update(DisplayUpdate::CopyToClipboard),
+                    cmd => self.ui_update(DisplayUpdate::Message( format!("unrecognized command `:{}`", cmd)))
+                }
+
+                self.mode = InputMode::Prompt(false);
+                self.switch_buffer(-1);
+                let _ = self.buffers.pop();
+            }
+        }
+        
+        Ok(())
+    }
+}
+
+impl<T: Into<comfy_table::Row>> InputHandler<T> for ProgramInputHandler<T> {
+    fn handle_key_input(&mut self, event: KeyEvent) -> io::Result<()> {
         match event {
-            Event::Key(KeyEvent { code: KeyCode::Char('c'), modifiers: KeyModifiers::CONTROL, kind: KeyEventKind::Release, .. }) |
-            Event::Key(KeyEvent { code: KeyCode::Esc, modifiers: KeyModifiers::NONE, kind: KeyEventKind::Release, .. })
-                => return Err(0),
-            Event::Key(KeyEvent { code, modifiers: KeyModifiers::NONE, kind: KeyEventKind::Press, .. }) => {
+            KeyEvent { code, modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, kind: KeyEventKind::Press | KeyEventKind::Repeat, .. } => {
                 match code {
-                    KeyCode::Enter => {
-                        if self.buffer.len() == 0 {
-                            return Err(0)
-                        }
-
-                        // match on buffer length (buffer suffix if the buffer is delimited by DELIM)
-                        match self.buffer_prefix().len() {
-                            l if l == EXPECTED_PROGRAM_NAME_LENGTH => self.last_input = self.buffer.drain(..).collect(),
-
-                            // input is shorter than last_input -> update last_input RTL
-                            //   note the use of `buffer.drain(..)`. This takes essentially clears the buffer and returns the results
-                            l if l < self.last_input.len() =>
-                                self.last_input.replace_range(self.last_input.len()-l.., self.buffer.drain(..).collect::<String>().as_str()),
-                            
-                            _ => self.last_input = self.buffer.drain(..).collect()
-                        }
-
-                        // Send input to database for results
-                        let _ = self.db.send(self.last_input.clone());
-                        log::trace!("InputHandler asked db for `{}` results", self.last_input);
-
-                        // if last_program has a '-' or '_' in it, only retain the first part
-                        if let Some((head, _tail)) = self.last_input.split_once(DELIMS) {
-                            self.last_input = String::from(head);
+                    KeyCode::Esc => {
+                        match self.mode {
+                            InputMode::Prompt(false) => Self::terminate()?,
+                            InputMode::Prompt(true) => self.mode = InputMode::Prompt(false),
+                            InputMode::Command => {
+                                // return to Prompt mode
+                                self.mode = InputMode::Prompt(false);
+                                self.switch_buffer(-1);
+                                let _ = self.buffers.pop();
+                            }
                         }
                     },
-                    KeyCode::Backspace => { self.buffer.pop(); },
-                    KeyCode::Char(c) => self.buffer.push(c),
-                    // TODO: {Left, Right, Up, Down, Home, End}
-                    // TODO: {Delete}
-                    // TODO: {PrintScreen} -> copy to clipboard
-                    // KeyCode::PrintScreen => {},
+                    KeyCode::Enter => {
+                        if self.buffer().get_ref().len() == 0 {
+                            Self::terminate()?
+                        } else {
+                            self.commit_buffer()?
+                        }
+                    },
+                    
+                    KeyCode::Backspace => self.buffer_mut().backspace()?,
+                    KeyCode::Delete    => self.buffer_mut().delete(),
+
+                    // {Left, Right, Home, End}
+                    // ignore errors because a seek out of bounds is an error
+                    KeyCode::Home  => { let _ = self.buffer_mut().seek(SeekFrom::Start(0)); },
+                    KeyCode::End   => { let _ = self.buffer_mut().seek(SeekFrom::End(0)); },
+                    KeyCode::Left  => { let _ = self.buffer_mut().seek(SeekFrom::Current(-1)); },
+                    KeyCode::Right => { let _ = self.buffer_mut().seek(SeekFrom::Current(1)); },
+
+                    // {Up, Down} buffer switching, if in Prompt mode
+                    KeyCode::Up   => self.switch_buffer(-1),
+                    KeyCode::Down => self.switch_buffer(1),
+                    
+                    KeyCode::Char(':') => {
+                        if self.mode != InputMode::Command {
+                            self.mode = InputMode::Command;
+                            self.buffer_id = self.buffers.len();
+                            self.buffers.push( InputBuffer::new() );
+                            self.write_buffer(b":")?;
+                        }
+                    },
+                    KeyCode::Char('?') => {
+                        self.mode = match self.mode {
+                            InputMode::Prompt(true) => InputMode::Prompt(false),
+                            _ => InputMode::Prompt(true)
+                        };
+                    },
+
+                    KeyCode::Char(c) => self.write_buffer(c.encode_utf8(&mut [0u8 ;1]).as_bytes())?,
                     _ => ()
                 }
             },
-            Event::Paste(data) => self.buffer.push_str(&data),
-            // TODO: mouse support
-            // Event::Mouse(event) => (),  
             _ => ()
         }
 
         Ok(())
     }
 
-    fn buffer_prefix(&self) -> &str {
-        self.buffer.split_once(DELIMS).map(|x| x.0).unwrap_or(&self.buffer)
+    fn write_buffer(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.buffer_mut().write(&buf).map(|_| ())
     }
 
-    pub fn prompt<T>(&self, print_to: &mut T) -> io::Result<()>
-        where T: Write + Sized
-    {
-        print_to.queue(Print(&self.prompt))?;
-        print_to.queue(Print(String::from(" > ")))?;
+    fn draw_prompt(&self, stdout: &mut io::Stdout) -> io::Result<()> {
+        stdout
+            .queue(cursor::MoveToColumn(0))?
+            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
 
-        match (self.last_input.len(), self.buffer_prefix().len()) {
-            (l, b) if l > 0 && l > b => {
-                print_to.queue(PrintStyledContent(self.last_input.get(..l-b).unwrap().dim()))?;
+        match self.mode {
+            InputMode::Prompt(show_tips) => {
+                let prefix_hint = match self.previous_prefix() {
+                    Some(prev) if self.buffer().get_ref().len() > 0 => self.buffer().trim_prefix(prev),
+                    _ => ""
+                };
+
+                if show_tips {
+                    stdout.queue(Print( format!("{}\n", TIPS).blue() ))?;
+                }
+        
+                stdout
+                    .queue(Print(format!("Program > {}{}", prefix_hint.dark_grey(), self.buffer())))?
+                    .queue(cursor::MoveToColumn(0))?
+                    .queue(cursor::MoveRight((10 + prefix_hint.len() + self.buffer().position() as usize) as u16))?;
             },
-            _ => ()
+            InputMode::Command => {
+                stdout
+                    .queue(Print( format!("{}\n", COMMANDS).blue() ))?
+                    .queue(Print( format!("Command > {}", self.buffer()) ))?
+                    .queue(cursor::MoveToColumn(0))?
+                    .queue(cursor::MoveRight((10 + self.buffer().position()) as u16))?;
+            },
         }
 
-        print_to.queue(Print(&self.buffer))?;
+        stdout.flush()
+    }
 
-        Ok(())
+    fn ui_update(&self, message: DisplayUpdate<T>) {
+        // we don't want to crash the program
+        let _ = self.display.send(message);
     }
 }

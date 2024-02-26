@@ -1,8 +1,13 @@
 
+#![feature(cursor_remaining, slice_split_once)]
+#![feature(linked_list_cursors)]
+
+mod buffer;
 mod input;
 mod program;
-mod term;
+mod termui;
 
-pub use input::InputHandler;
+pub use buffer::InputBuffer;
+pub use input::ProgramInputHandler;
 pub use program::{Program, ProgramState, HEADER};
-pub use term::{DisplayUpdate, TableTerminal};
+pub use termui::{DisplayUpdate, InputHandler, QueryTableUi};
