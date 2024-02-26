@@ -10,10 +10,12 @@ license = "MIT"
 anyhow = "1.0.79"
 chrono = "0.4.33"
 comfy-table = "7.1.0"
+copypasta = "0.10.1"
 crossterm = { version = "0.27.0", features = ["event-stream"] }
 dialoguer = "0.11.0"
 log = { workspace = true }
 simplelog = "0.12.1"
+strip-ansi-escapes = "0.2.0"
 sysinteg-core = { workspace = true }
 sysinteg-db = { workspace = true }
 tiberius = { version = "0.12.2", features = ["chrono"] }
