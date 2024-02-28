@@ -177,3 +177,7 @@ IF NOT EXISTS (SELECT name FROM HighSteel.RuntimeInfo WHERE name='SapProductionD
 IF NOT EXISTS (SELECT name FROM HighSteel.RuntimeInfo WHERE name='SapIssueData')
 	INSERT INTO HighSteel.RuntimeInfo (name, last_runtime) VALUES ('SapIssueData', DATEADD(HOUR, DATEDIFF(HOUR, 0, GETDATE()), 0));
 GO
+
+--grant permissions
+GRANT SELECT ON SNDBase91.SapConsumptionData TO [HIGH\SteelAll];
+GO

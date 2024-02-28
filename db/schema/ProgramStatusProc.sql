@@ -57,4 +57,9 @@ AS
 					ELSE 'SN101'
 				END
 			ORDER BY Program.ArcDateTime DESC
-		END
+		END;
+GO
+
+--grant permissions
+GRANT EXECUTE ON SNDBase91.GetProgramStatus TO [HIGH\SteelAll];
+GO
