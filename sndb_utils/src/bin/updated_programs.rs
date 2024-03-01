@@ -1,6 +1,6 @@
 
-use updated_programs::{DisplayUpdate, ProgramInputHandler, QueryTableUi};
-use updated_programs::{HEADER, Program};
+use sndb_utils::{DisplayUpdate, ProgramInputHandler, QueryTableUi};
+use sndb_utils::{HEADER, Program};
 
 use sysinteg_core::config::TomlConfig;
 use sysinteg_db::DbConnParams;

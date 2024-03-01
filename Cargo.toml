@@ -1,5 +1,5 @@
 [workspace]
-members = ["core", "sap_consumption", "updatedprograms", "workorder"]
+members = ["core", "sap_consumption", "sndb_utils", "workorder"]
 default-members = ["core"]
 resolver = "2"
 
