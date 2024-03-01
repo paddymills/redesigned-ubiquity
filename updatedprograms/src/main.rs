@@ -1,10 +1,11 @@
 
-use updatedprograms::{DisplayUpdate, ProgramInputHandler, QueryTableUi};
-use updatedprograms::{HEADER, Program};
+use updated_programs::{DisplayUpdate, ProgramInputHandler, QueryTableUi};
+use updated_programs::{HEADER, Program};
 
 use sysinteg_core::config::TomlConfig;
 use sysinteg_db::DbConnParams;
 
+use std::env;
 use std::sync::mpsc;
 
 const INSTRUCTIONS: &str = r#"
@@ -26,18 +27,22 @@ async fn main() -> anyhow::Result<()> {
         let _ = simplelog::WriteLogger::init(level, config, std::fs::File::create("updatedprograms.log").unwrap());
     }
     
-    let cfg = match DbConnParams::load("db.toml") {
-        Ok(config) => config,
-        Err(error) => {
-            eprintln!("Failed to parse `db.toml`");
+    let cfg = match (env::var("SndbServer"), env::var("SndbDatabase")) {
+        (Ok(server), Ok(database)) => DbConnParams { server, database },
+        _ => match DbConnParams::load("db.toml") {
+            Ok(config) => config,
+            Err(error) => {
+                eprintln!("Failed to parse `db.toml`");
 
-            // wait for input to keep console window open
-            println!("Press any key to exit...");
-            let _ = std::io::stdin().read_line(&mut String::new());
+                // wait for input to keep console window open
+                println!("Press any key to exit...");
+                let _ = std::io::stdin().read_line(&mut String::new());
 
-            return Err(error)
+                return Err(error)
+            }
         }
     };
+
     let mut client = match cfg.connect().await {
         Ok(config) => config,
         Err(error) => {
