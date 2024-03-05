@@ -11,9 +11,7 @@ repository = "https://github.com/paddymills/redesigned-ubiquity"
 
 [dependencies]
 anyhow = "1.0.75"
-chrono = "0.4.31"
 log = "0.4.20"
 regex = "1.10.3"
 serde = { workspace = true }
-tokio = { workspace = true }
 toml = { version = "0.8.8", features = ["parse"] }
