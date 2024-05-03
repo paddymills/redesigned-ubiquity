@@ -21,3 +21,26 @@ CREATE TABLE HighSteel.Log (
 	message varchar(255)
 );
 GO
+
+
+CREATE TABLE HighSteel.OldSapDataFilesOriginals (
+	Id int IDENTITY(1,1) PRIMARY KEY,
+	PartName varchar(64),
+	Job varchar(64),
+	PartWbs varchar(64),
+	PartLoc varchar(8),
+	PartQty int,
+	PartUoM varchar(8),
+
+	MatlMaster varchar(64),
+	MatlWbs varchar(64),
+	MatlLoc varchar(8),
+	MatlQty float,
+	MatlUoM varchar(8),
+
+	Plant varchar(8),
+	Program varchar(8),
+
+	FileTimestamp datetime
+);
+Go
