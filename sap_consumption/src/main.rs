@@ -1,6 +1,6 @@
 
-// hide terminal window, if not a debug build and terminal feature is not enabled
-#![cfg_attr(all(not(debug_assertions), not(feature = "terminal")), windows_subsystem = "windows")]
+// hide terminal window, if not a debug build
+#![cfg_attr(all(not(debug_assertions)), windows_subsystem = "windows")]
 
 mod cli;
 mod config;
