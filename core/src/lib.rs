@@ -1,5 +1,6 @@
 
-#![feature(lazy_cell)]
+#![feature(cfg_version)]
+#![cfg_attr(not(version("1.80")), feature(lazy_cell))]
 
 #![warn(missing_docs)]
 
