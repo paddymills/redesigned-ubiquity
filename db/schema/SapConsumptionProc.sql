@@ -2,10 +2,13 @@
 USE SNDBase91;
 
 IF EXISTS (SELECT name FROM sys.views WHERE name = 'SapConsumptionData') DROP VIEW SapConsumptionData;
+IF EXISTS (SELECT name FROM sys.views WHERE name = 'SapProductionData_Raw') DROP VIEW SapProductionData_Raw;
+IF EXISTS (SELECT name FROM sys.views WHERE name = 'SapIssueData_Raw') DROP VIEW SapIssueData_Raw;
 IF EXISTS (SELECT name FROM sys.procedures WHERE name = 'SapProductionData') DROP PROCEDURE SapProductionData;
 IF EXISTS (SELECT name FROM sys.procedures WHERE name = 'SapIssueData') DROP PROCEDURE SapIssueData;
 IF EXISTS (SELECT name FROM sys.procedures WHERE name = 'SapProductionData_SinceLastRun') DROP PROCEDURE SapProductionData_SinceLastRun;
 IF EXISTS (SELECT name FROM sys.procedures WHERE name = 'SapIssueData_SinceLastRun') DROP PROCEDURE SapIssueData_SinceLastRun;
+IF EXISTS (SELECT name FROM sys.procedures WHERE name = 'SapIssueData_ForInboxFailure') DROP PROCEDURE SapIssueData_ForInboxFailure;
 GO
 
 CREATE VIEW SapConsumptionData AS
@@ -23,8 +26,8 @@ CREATE VIEW SapConsumptionData AS
 						THEN FORMAT(CONVERT(int,Data2), '00')
 						ELSE Data2
 				END AS Shipment,
-				CASE Data3
-					WHEN ''
+				CASE
+					WHEN NULLIF(Data3, '') IS NULL
 						THEN REPLACE(PartName, '_', '-') -- fallback to part name
 						ELSE Data3
 				END AS PartName,
@@ -77,6 +80,25 @@ CREATE VIEW SapConsumptionData AS
 			ON Parts.ArchivePacketID=Sheets.ArchivePacketID
 		INNER JOIN Programs
 			ON Parts.ArchivePacketID=Programs.ArchivePacketID;
+GO
+
+CREATE VIEW SapProductionData_Raw
+AS
+	SELECT
+		PartName,
+		Id,
+		PartWbs,
+		PartLocation,
+		PartQty,
+		PartUoM,
+		MaterialMaster,
+		MaterialWbs,
+		TotalNestedArea,
+		MaterialUoM,
+		MaterialLocation,
+		Plant,
+		ProgramName
+	FROM SapConsumptionData
 GO
 
 CREATE PROCEDURE SapProductionData
@@ -171,6 +193,66 @@ AS
 
 	EXEC SapIssueData @Start = @LastRun, @End = @End;
 GO
+
+CREATE VIEW SapIssueData_Raw
+AS
+	SELECT
+		CASE
+			WHEN Shipment LIKE '20[0-9][0-9]' THEN
+				CASE MaterialWbs WHEN ''
+					THEN 'CC01'
+					ELSE 'CC02'
+				END
+			WHEN MaterialWbs LIKE 'D-' + Job + '-%'
+				THEN 'PR01'
+			WHEN MaterialWbs = ''
+				THEN 'PR02'
+			ELSE 'PR03'	-- Sheets.Wbs is for a different Job
+		END AS Code,
+		CASE
+			WHEN Shipment LIKE '20[0-9][0-9]'
+				THEN Shipment
+				ELSE 'D-' + Job
+		END AS User1,
+		CASE WHEN Shipment LIKE '20[0-9][0-9]' THEN
+			CASE WHEN
+				-- wish there was a better way to do this,
+				--   but this is the same as the regex `(^|[_-])machine($|[_-])` for each machine name
+				PartName LIKE 'gemini[-_]%' OR PartName LIKE '%[-_]gemini' OR PartName LIKE '%[-_]gemini[-_]%' OR
+				PartName LIKE 'titan[-_]%'  OR PartName LIKE '%[-_]titan'  OR PartName LIKE '%[-_]titan[-_]%'  OR
+				PartName LIKE 'mg[-_]%'     OR PartName LIKE '%[-_]mg'     OR PartName LIKE '%[-_]mg[-_]%'     OR
+				PartName LIKE 'farley[-_]%' OR PartName LIKE '%[-_]farley' OR PartName LIKE '%[-_]farley[-_]%' OR
+				PartName LIKE 'ficep[-_]%'  OR PartName LIKE '%[-_]ficep'  OR PartName LIKE '%[-_]ficep[-_]%'
+
+				THEN '634124' -- machine parts
+				ELSE '637118' -- shop supplies
+			END
+
+			ELSE Shipment
+		END AS User2,
+		MaterialMaster,
+		MaterialWbs,
+		TotalNestedArea,
+		MaterialUoM,
+		MaterialLocation,
+		Plant,
+		Id
+	FROM SapConsumptionData;
+GO
+
+CREATE PROCEDURE SapIssueData_ForInboxFailure
+	@Mark VARCHAR(32), @Wbs VARCHAR(16), @Qty INTEGER, @Program VARCHAR(8)
+AS
+	SELECT * FROM SapIssueData_Raw
+	WHERE Id IN (
+		SELECT Id FROM SapConsumptionData
+		WHERE PartName = @Mark
+		AND PartWbs = @Wbs
+		AND PartQty = @Qty
+		AND ProgramName = @Program
+	);
+GO
+
 
 IF NOT EXISTS (SELECT name FROM HighSteel.RuntimeInfo WHERE name='SapProductionData')
 	INSERT INTO HighSteel.RuntimeInfo (name, last_runtime) VALUES ('SapProductionData', DATEADD(HOUR, DATEDIFF(HOUR, 0, GETDATE()), 0));
