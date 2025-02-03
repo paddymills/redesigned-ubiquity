@@ -21,6 +21,13 @@ The reason for the install/uninstall pertains to the usage of the Windows Event 
     - logging_name: The application name used in the Windows Event Logger
     - database: The server and database of the Sigmanest database
 
+### Migration
+
+1) Export the Windows chedule task in the current running environment
+2) copy the executable and config file to the new environment
+3) Run `sap_consumption.exe install` in the new environment to register the application with the logger
+4) Import the Windows schedule task in the new environment
+
 ### Permissions
 
 The user that the scheduled task is ran as needs to have the following permissions
