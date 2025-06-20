@@ -77,11 +77,25 @@ impl DerefMut for InputBuffer {
 
 impl Write for InputBuffer {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let pos = self.position() + buf.len() as u64;
-        let written = self.0.write(&[&buf[..], &self.remaining_slice()].concat()[..])?;
-        self.set_position(pos);
+        let current_pos = self.position() as usize;
+        let buffer_data = self.0.get_ref();
+        
+        // Split the buffer at current position
+        let (before, after) = buffer_data.split_at(current_pos);
+        
+        // Create new buffer with inserted data
+        let mut new_data = Vec::with_capacity(before.len() + buf.len() + after.len());
+        new_data.extend_from_slice(before);
+        new_data.extend_from_slice(buf);
+        new_data.extend_from_slice(after);
+        
+        // Replace buffer contents
+        *self.0.get_mut() = new_data;
+        
+        // Update position
+        self.set_position(current_pos as u64 + buf.len() as u64);
 
-        Ok(written)
+        Ok(buf.len())
     }
     fn flush(&mut self) -> io::Result<()> {
         self.0.flush()

@@ -1,5 +1,5 @@
 
-#![feature(cursor_remaining, slice_split_once)]
+#![feature(slice_split_once)]
 #![feature(linked_list_cursors)]
 
 mod buffer;
