@@ -18,7 +18,7 @@ pub enum Query {
 }
 
 impl Query {
-    pub async fn execute<'a>(&'a self, client: &'a mut DbClient) -> tiberius::Result<tiberius::QueryStream<'_>> {
+    pub async fn execute<'a>(&'a self, client: &'a mut DbClient) -> tiberius::Result<tiberius::QueryStream<'a>> {
         match self {
             Self::ProgramStatus(program) => client.query("EXEC GetProgramStatus @ProgramName=@P1", &[program]).await,
             Self::PartStatus(part) => client.query("EXEC GetPartStatus @ProgramName=@P1", &[part]).await,
