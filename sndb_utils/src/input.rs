@@ -96,10 +96,14 @@ impl<T: Into<comfy_table::Row>> ProgramInputHandler<T> {
                 self.buffers.get_mut(self.buffer_id).unwrap().apply_prefix(&prefix)?;
 
                 // Send input to database for results
-                match self.submit_to.send(self.buffer().to_string()) {
-                    Ok(_) => log::info!("`{}` sent to db thread", self.buffer()),
-                    Err(e) => log::error!("Error sending input to db thread: {}", e)
-                }
+                self.buffer().to_string()
+                    .split(' ')
+                    .for_each(|val| {
+                        match self.submit_to.send(String::from(val)) {
+                            Ok(_) => log::info!("`{}` sent to db thread", self.buffer()),
+                            Err(e) => log::error!("Error sending input to db thread: {}", e)
+                        }
+                    });
 
                 // reset buffer
                 self.buffer_id = self.buffers.len();
