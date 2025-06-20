@@ -41,7 +41,7 @@ impl FromStr for JobShipment {
     type Err = JobShipmentParseError;
     
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        log::trace!("Parsing JobShipment <FromStr> {}", value);
+        log::trace!("Parsing JobShipment <FromStr> {value}");
 
         match JOB_SHIPMENT_PATTERN.captures(value).map(|c| c.extract()) {
             Some((full, [_, "", _])) => Err(JobShipmentParseError::MissingStructureLetter(full.into())),
@@ -61,7 +61,7 @@ impl FromStr for JobShipment {
 
 impl From<String> for JobShipment {
     fn from(value: String) -> Self {
-        log::trace!("Parsing JobShipment <From> {}", value);
+        log::trace!("Parsing JobShipment <From> {value}");
         
         Self::from_str(&value).unwrap()
     }

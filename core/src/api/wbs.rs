@@ -46,7 +46,7 @@ impl TryFrom<&str> for Wbs {
             return Ok(Self::Legacy { project: caps[0].parse().unwrap(), shipment: caps[1].parse().unwrap() });
         } 
 
-        Err(format!("WBS element `{}` does not match either of the expected patterns `D-#######-#####` or `S-#######-2-##`", value))
+        Err(format!("WBS element `{value}` does not match either of the expected patterns `D-#######-#####` or `S-#######-2-##`"))
     }
 }
 
