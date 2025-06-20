@@ -2,6 +2,7 @@
 //! WBS element
 
 use regex::Regex;
+use std::fmt;
 use std::sync::LazyLock;
 
 // HD wbs element
@@ -50,11 +51,11 @@ impl TryFrom<&str> for Wbs {
     }
 }
 
-impl ToString for Wbs {
-    fn to_string(&self) -> String {
+impl fmt::Display for Wbs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Wbs::Hd { project, id } => format!("D-{project}-{id}"),
-            Wbs::Legacy { project, shipment } => format!("S-{project}-2-{shipment:02}"),
+            Wbs::Hd { project, id } => write!(f, "D-{project}-{id}"),
+            Wbs::Legacy { project, shipment } => write!(f, "S-{project}-2-{shipment:02}"),
         }
     }
 }
